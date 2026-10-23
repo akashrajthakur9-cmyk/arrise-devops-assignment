@@ -99,18 +99,18 @@ bucket. What I left out:
 
 There were two separate bugs.
 
-1. **The trust policy pointed at a principal that does not exist.** The
-   principal was written as `arn:aws:iam::000000000000:user/roleB`, but
-   roleB is an IAM role, so its ARN is
+1. **The trust policy named the wrong identity type.** The principal was
+   written as `arn:aws:iam::000000000000:user/roleB`, but roleB is an IAM
+   role, and a role's ARN looks like
    `arn:aws:iam::000000000000:role/roleB`. AWS matches the principal ARN
-   literally - `user/` and `role/` are not interchangeable. No identity in
-   the account has the `user/roleB` ARN, so the trust matched nothing and
-   every AssumeRole call from roleB was denied. Changing the path to
-   `role/roleB` is what makes the trust actually resolve.
+   literally, and `user/` and `role/` are not interchangeable, so the role
+   that was supposed to be trusted was not the one in the policy. Fixing
+   the path to `role/roleB` is what actually trusts roleB.
 
-2. **The permissions policy was wide open.** `Action: "s3:*"` with
-   `Resource: "*"` gives full S3 access to every bucket and object in the
-   account, when the requirement was full access to one named bucket. I
-   scoped it to that bucket's ARN (for bucket-level actions like listing)
-   plus `bucket/*` (for object-level actions). The role keeps full access
-   to that one bucket and gets nothing outside it.
+2. **The permissions policy was wider than the task asked.**
+   `Action: "s3:*"` with `Resource: "*"` allows full S3 actions against
+   every bucket and object the role can reach, not just the one named
+   bucket the task specifies. I scoped it to that bucket's ARN (for
+   bucket-level actions like listing) plus `bucket/*` (for object-level
+   actions). The role keeps full access to that one bucket, and the policy
+   no longer reaches past it.
